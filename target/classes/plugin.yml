@@ -1,0 +1,4 @@
+name: Locksmithy
+main: com.makotomiyamoto.locksmithy.Locksmithy
+version: 1.0-SNAPSHOT
+api-version: '1.15'

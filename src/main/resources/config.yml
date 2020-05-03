@@ -1,0 +1,35 @@
+options:
+  message-prefix: "&8[&eA Nice Prefix&8]"
+  messages:
+    lockpick-success: "&aLock has been picked!"
+    lockpick-failure: "&cFailed to pick lock!"
+    lockpick-failure-critical: "&cThe lock has been jammed!"
+    smash-success: "&aLock has been smashed!"
+    smash-failure: "&cSmash attempt failed!"
+    smash-failure-critical: "&cYour axe has been broken!"
+  lockpick:
+    # /lks <success_rate> <critical_failure_rate> to spawn lockpick
+    item: tripwire hook # read during lockpick generation (/lks)
+    lore: # read during lockpick generation (/lks)
+      - "&7Used to break into locks."
+      - "&7Shift+Right-Click on locked"
+      - "&7chest to activate."
+      - ""
+      - "&7Sucess Rate: &a%SUCCESS_RATE%"
+      - "&7Critical Failure Rate: &c%CRITICAL_FAILURE_RATE%"
+    match-lore-regex: # used to evaluate validity of lockpick
+      - "Used to break into locks."
+      - ""
+      - ""
+      - ""
+      - "Success Rate: "
+      - "Critical Failure Rate: "
+  key:
+    # /lks <(%authorized_location%|master)> [...<%authorized_locations%>]
+    # to generate key
+    item: iron nugget
+    name: "&eChest Key"
+    lore:
+      - "&7whatever you want here lol"
+      - "&7Created by: &a%KEY_CREATOR%"
+    # authorized locations stored in secret metadata
