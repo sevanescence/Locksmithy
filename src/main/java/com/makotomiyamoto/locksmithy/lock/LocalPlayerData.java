@@ -27,6 +27,7 @@ public class LocalPlayerData {
         try {
             JsonReader reader = new JsonReader(new FileReader(file));
             localPlayerData = new Gson().fromJson(reader, LocalPlayerData.class);
+            localPlayerData.playerByUuid = player.getUniqueId().toString();
             reader.close();
             return localPlayerData;
         } catch (IOException | IllegalArgumentException ignored) {
