@@ -1,1 +1,8 @@
+com\makotomiyamoto\locksmithy\listener\LockpickAttemptHandler.class
+com\makotomiyamoto\locksmithy\lock\RegisteredKey.class
+com\makotomiyamoto\locksmithy\listener\BlockInteractListener.class
 com\makotomiyamoto\locksmithy\Locksmithy.class
+com\makotomiyamoto\locksmithy\lock\LocationReference$1.class
+com\makotomiyamoto\locksmithy\listener\BlockBreakListener.class
+com\makotomiyamoto\locksmithy\lock\LocalPlayerData.class
+com\makotomiyamoto\locksmithy\lock\LocationReference.class

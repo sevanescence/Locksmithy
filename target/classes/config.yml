@@ -1,5 +1,19 @@
 options:
-  message-prefix: "&8[&eA Nice Prefix&8]"
+  lock-smashing:
+    enabled: true
+    success-rate: 15
+    critical-failure-rate: 15
+    items:
+      diamond_axe:
+        success-rate: 15
+        critical-failure-rate: 15
+      iron_axe:
+        success-rate: 10
+        critical-failure-rate: 20
+  lockpicking:
+    enabled: true
+  message-prefix: "&8[&eLocksmithy&8]"
+  message-mode: chat # (chat|action-bar) where messages will be displayed.
   messages:
     lockpick-success: "&aLock has been picked!"
     lockpick-failure: "&cFailed to pick lock!"
@@ -7,16 +21,28 @@ options:
     smash-success: "&aLock has been smashed!"
     smash-failure: "&cSmash attempt failed!"
     smash-failure-critical: "&cYour axe has been broken!"
+    lock-already-assigned: "&cA lock already assigned to this location!"
+    key-in-use: "&cThis is an advanced key and is already assigned to a lock!"
+    lock-created: "&aSuccessfully assigned a lock!"
+    inventory-full: "&cYou do not have inventory space for a new key!"
+    block-locked: "&cThis %block% is locked!"
+    confirm-block-destroy: "&cIf you really want to break this locked block, toggle &6/lks break"
+    lock-already-broken: "&cThis lock is already broken!"
+    lock-unbreakable: "&cThis lock is advanced and cannot be broken into!"
+    was-broken-into: "&cWARNING: Your lock was broken into! Automatically re-locked."
+    was-jammed: "&cWARNING: Someone tried breaking into your lock, but failed miserably."
   lockpick:
-    # /lks <success_rate> <critical_failure_rate> to spawn lockpick
-    item: tripwire hook # read during lockpick generation (/lks)
-    lore: # read during lockpick generation (/lks)
+    default-success-rate: 15
+    default-critical-failure-rate: 15
+    name: "&fLockpick"
+    item: prismarine shard
+    lore:
       - "&7Used to break into locks."
       - "&7Shift+Right-Click on locked"
       - "&7chest to activate."
       - ""
-      - "&7Sucess Rate: &a%SUCCESS_RATE%"
-      - "&7Critical Failure Rate: &c%CRITICAL_FAILURE_RATE%"
+      - "&7Success Rate: &a%SUCCESS_RATE%%"
+      - "&7Critical Failure Rate: &c%CRITICAL_FAILURE_RATE%%"
     match-lore-regex: # used to evaluate validity of lockpick
       - "Used to break into locks."
       - ""
@@ -24,12 +50,59 @@ options:
       - ""
       - "Success Rate: "
       - "Critical Failure Rate: "
+  #
+  # NOTE:::::::::::::::::::: THE LORE LINE WITH
+  #   %KEY_ID% MUST *****NOT***** HAVE ANY NUMBERS.
+  #   I MEAN IT. (except for color codes obviously)
+  #   THIS APPLIES TO ALL KEYS.
+  #   SAME ALSO GOES FOR SUCCESS AND CRITICAL FAILURE.
+  #
   key:
-    # /lks <(%authorized_location%|master)> [...<%authorized_locations%>]
-    # to generate key
+    # v alias for IRON_NUGGET, can be iRoN_nuggeT or iroN nuGGet for all i care, as long as the name is right.
     item: iron nugget
-    name: "&eChest Key"
+    name: "Key"
+    name-color: "&e"
+    renameable: false # allow players to rename the item. does not affect item matching.
     lore:
-      - "&7whatever you want here lol"
-      - "&7Created by: &a%KEY_CREATOR%"
+      - "&8Model %MODEL_NUMBER%" # optional, this is for Optifine's CIT.
+      - "&7Created by: &a%KEY_OWNER%" # optional (for now). whoever created the key.
+      - "&8Key #%KEY_ID%" # REQUIRED, necessary for lock matching.
+    match-lore-regex: # does not support placeholders
+      - "Model "
+      - "Created by: "
+      - "Key "
+  advanced_key:
+    item: iron nugget
+    name: "Advanced Key"
+    name-color: "&6"
+    lore:
+      - "&8Advanced"
+      - "&8Model %MODEL_NUMBER%"
+      - "&7Created by: %KEY_OWNER%"
+      - "&8Key #%KEY_ID%"
+    match-lore-regex:
+      - "Advanced"
+      - ""
+      - "Created by: "
+      - "Key "
+  blank_key:
+    item: iron nugget
+    name: "&eBlank Key"
+    lore:
+      - "&7Shift + Right-Click on any door"
+      - "&7or chest to set a lock."
+    match-lore-regex:
+      - "Shift + "
+      - "or chest "
+  advanced_blank_key:
+    item: iron nugget
+    name: "&6Blank Advanced Key"
+    lore:
+      - "&8Advanced"
+      - "&7Shift + Right-Click on any door"
+      - "&7or chest to set a lock."
+    match-lore-regex:
+      - "Advanced"
+      - "Shift + "
+      - "or chest "
     # authorized locations stored in secret metadata
