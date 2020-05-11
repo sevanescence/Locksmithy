@@ -9,7 +9,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 public class RegisteredKey {
 
@@ -45,7 +47,7 @@ public class RegisteredKey {
         return itemStack;
     }
 
-    public static ItemStack generateKeyByKey(Locksmithy plugin, String keyString, Player player) {
+    public static HashMap<String, ItemStack> generateKeyByKey(Locksmithy plugin, String keyString, Player player) {
         FileConfiguration config = plugin.getConfig();
         ConfigurationSection key = config.getConfigurationSection(keyString);
         assert key != null;
@@ -58,6 +60,7 @@ public class RegisteredKey {
         meta.setDisplayName(ChatColor.translateAlternateColorCodes('&',
                 key.getString("name-color") + key.getString("name")));
         List<String> lore = key.getStringList("lore");
+        long id = plugin.generateNewKeyId();
         for (int i = 0; i < lore.size(); i++) {
             String l;
             l = ChatColor.translateAlternateColorCodes('&', lore.get(i));
@@ -65,13 +68,15 @@ public class RegisteredKey {
             l = l.replaceAll("%KEY_OWNER%", player.getName());
             l = l.replaceAll("%LABEL%", "No Label");
             if (l.contains("%KEY_ID%"))
-                l = l.replaceAll("%KEY_ID%", String.valueOf(plugin.generateNewKeyId()));
+                l = l.replaceAll("%KEY_ID%", String.valueOf(id));
             lore.set(i, l);
         }
         if (lore.size() > 0)
             meta.setLore(lore);
         itemStack.setItemMeta(meta);
-        return itemStack;
+        HashMap<String, ItemStack> map = new HashMap<>();
+        map.put(String.valueOf(id), itemStack);
+        return map;
     }
 
     public static int findLoreIndexFromConfig(Locksmithy plugin, String key, String node) {
@@ -103,6 +108,27 @@ public class RegisteredKey {
         }
 
         return true;
+
+    }
+
+    public static boolean isSmashItem(Locksmithy plugin, ItemStack itemStack) {
+
+        if (itemStack == null || itemStack.getItemMeta() == null) return false;
+
+        ConfigurationSection smashingSection = plugin.getConfig().getConfigurationSection("options.lock-smashing");
+        assert smashingSection != null;
+
+        //noinspection ConstantConditions
+        Set<String> items = smashingSection.getConfigurationSection("items").getKeys(false);
+        boolean isItem = false;
+        for (String key : items) {
+            if (key.toUpperCase().equals(itemStack.getType().toString())) {
+                isItem = true;
+                break;
+            }
+        }
+
+        return isItem;
 
     }
 

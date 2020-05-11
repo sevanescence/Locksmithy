@@ -1,8 +1,9 @@
 options:
+  crafting:
+    advanced-key-duplication: true
+  lock-break-cooldown-seconds: 5 # lock break attempt cooldown in seconds
   lock-smashing:
     enabled: true
-    success-rate: 15
-    critical-failure-rate: 15
     items:
       diamond_axe:
         success-rate: 15
@@ -15,20 +16,25 @@ options:
   message-prefix: "&8[&eLocksmithy&8]"
   message-mode: chat # (chat|action-bar) where messages will be displayed.
   messages:
-    lockpick-success: "&aLock has been picked!"
-    lockpick-failure: "&cFailed to pick lock!"
-    lockpick-failure-critical: "&cThe lock has been jammed!"
-    smash-success: "&aLock has been smashed!"
-    smash-failure: "&cSmash attempt failed!"
-    smash-failure-critical: "&cYour axe has been broken!"
-    lock-already-assigned: "&cA lock already assigned to this location!"
-    key-in-use: "&cThis is an advanced key and is already assigned to a lock!"
-    lock-created: "&aSuccessfully assigned a lock!"
-    inventory-full: "&cYou do not have inventory space for a new key!"
     block-locked: "&cThis %block% is locked!"
     confirm-block-destroy: "&cIf you really want to break this locked block, toggle &6/lks break"
+    cooldown-on-attempt: "&cYou must wait %COOLDOWN% seconds before trying to break a lock again!"
+    inventory-full: "&cYou do not have inventory space for a new key!"
+    key-in-use: "&cThis is an advanced key and is already assigned to a lock!"
+    lock-already-assigned: "&cA lock already assigned to this location!"
     lock-already-broken: "&cThis lock is already broken!"
+    lock-broken: "&7Lock removed."
+    lock-created: "&aSuccessfully assigned a lock!"
+    lock-jammed: "&cThis lock is jammed!"
+    lock-public-off: "&7Lock is now &aprivate&7."
+    lock-public-on: "&7Lock is now &epublic&7."
     lock-unbreakable: "&cThis lock is advanced and cannot be broken into!"
+    lockpick-failure: "&cFailed to pick lock!"
+    lockpick-failure-critical: "&cThe lock has been jammed!"
+    lockpick-success: "&aLock has been picked!"
+    smash-failure: "&cSmash attempt failed!"
+    smash-failure-critical: "&cYour axe has been broken!"
+    smash-success: "&aLock has been smashed!"
     was-broken-into: "&cWARNING: Your lock was broken into! Automatically re-locked."
     was-jammed: "&cWARNING: Someone tried breaking into your lock, but failed miserably."
   lockpick:

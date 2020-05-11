@@ -1,8 +1,13 @@
-com\makotomiyamoto\locksmithy\listener\LockpickAttemptHandler.class
+com\makotomiyamoto\locksmithy\commands\CommandHandler.class
+com\makotomiyamoto\locksmithy\commands\CommandHelper.class
+com\makotomiyamoto\locksmithy\Locksmithy.class
+com\makotomiyamoto\locksmithy\listener\AdvancedCraftListener.class
+com\makotomiyamoto\locksmithy\lock\LocalPlayerData.class
 com\makotomiyamoto\locksmithy\lock\RegisteredKey.class
 com\makotomiyamoto\locksmithy\listener\BlockInteractListener.class
-com\makotomiyamoto\locksmithy\Locksmithy.class
+com\makotomiyamoto\locksmithy\listener\CraftListener.class
 com\makotomiyamoto\locksmithy\lock\LocationReference$1.class
 com\makotomiyamoto\locksmithy\listener\BlockBreakListener.class
-com\makotomiyamoto\locksmithy\lock\LocalPlayerData.class
+com\makotomiyamoto\locksmithy\listener\PistonPushListener.class
+com\makotomiyamoto\locksmithy\listener\BlockRedstoneListener.class
 com\makotomiyamoto\locksmithy\lock\LocationReference.class

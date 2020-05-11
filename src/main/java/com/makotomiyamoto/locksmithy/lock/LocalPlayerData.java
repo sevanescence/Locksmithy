@@ -6,17 +6,20 @@ import com.makotomiyamoto.locksmithy.Locksmithy;
 import org.bukkit.entity.Player;
 
 import java.io.*;
+import java.time.ZonedDateTime;
 
 public class LocalPlayerData {
 
     // TODO set up state data (debug mode)
     private transient String playerByUuid;
     private boolean breakLock, debug;
+    private long timeTried;
 
     public LocalPlayerData(Player player) {
         playerByUuid = player.getUniqueId().toString();
         breakLock = false;
         debug = false;
+        timeTried = 0;
     }
 
     public static LocalPlayerData fetchFromFile(Locksmithy plugin, Player player) {
@@ -45,6 +48,9 @@ public class LocalPlayerData {
     public boolean isDebug() {
         return debug;
     }
+    public long getTimeTried() {
+        return timeTried;
+    }
 
     public void setPlayerByUuid(String playerByUuid) {
         this.playerByUuid = playerByUuid;
@@ -54,6 +60,9 @@ public class LocalPlayerData {
     }
     public void setDebug(boolean debug) {
         this.debug = debug;
+    }
+    public void updateTimeTried() {
+        timeTried = ZonedDateTime.now().toInstant().toEpochMilli();
     }
 
     public void save(Locksmithy plugin) {

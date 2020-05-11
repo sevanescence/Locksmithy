@@ -1,8 +1,12 @@
 C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\Locksmithy.java
+C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\commands\CommandHandler.java
 C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\lock\LocalPlayerData.java
 C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\listener\BlockBreakListener.java
-C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\listener\LockpickAttemptHandler.java
+C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\listener\CraftListener.java
 C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\lock\LocationReference.java
+C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\commands\CommandHelper.java
+C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\listener\PistonPushListener.java
 C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\listener\BlockInteractListener.java
 C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\lock\RegisteredKey.java
 C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\debug\Main.java
+C:\Users\Makoto\repos\Locksmithy\src\main\java\com\makotomiyamoto\locksmithy\listener\BlockRedstoneListener.java

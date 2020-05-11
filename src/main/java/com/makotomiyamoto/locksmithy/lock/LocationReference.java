@@ -10,6 +10,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.type.Chest;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.*;
@@ -27,6 +28,7 @@ public class LocationReference {
     private boolean advancedLock; // whether or not the lock is advanced
     private boolean exposed; // whether or not the lock was successfully broken into
     private boolean jammed; // whether or not the lock is jammed
+    private boolean accessible;
 
     public LocationReference(Location location) {
 
@@ -117,6 +119,18 @@ public class LocationReference {
         return exposed;
     }
 
+    public void setAccessible(boolean accessible) {
+        this.accessible = accessible;
+    }
+    public boolean isAccessible() {
+        return accessible;
+    }
+
+    public static boolean isDoubleChest(Block block) {
+        org.bukkit.block.Chest chest = (org.bukkit.block.Chest) block.getState();
+        return chest.getInventory() instanceof DoubleChestInventory;
+    }
+
     public static LocationReference getDoubleChestTwin(Chest.Type type, BlockFace facing, Location location) {
         World world = location.getWorld();
         int x = location.getBlockX();
@@ -192,6 +206,24 @@ public class LocationReference {
             default:
                 return false;
         }
+    }
+
+    public static Location getDoorPart(Block block) {
+
+        Material doorType = block.getType();
+        Location loc = block.getLocation();
+        Location top = new Location(loc.getWorld(), loc.getBlockX(), loc.getBlockY()+1, loc.getBlockZ());
+        Location bot = new Location(loc.getWorld(), loc.getBlockX(), loc.getBlockY()-1, loc.getBlockZ());
+
+        //noinspection ConstantConditions
+        if (loc.getWorld().getBlockAt(top).getType().equals(doorType)) {
+            return top;
+        } else if (loc.getWorld().getBlockAt(bot).getType().equals(doorType)) {
+            return bot;
+        }
+
+        return loc;
+
     }
 
     public Material getRequiredType(Locksmithy plugin) {
@@ -303,6 +335,35 @@ public class LocationReference {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static LocationReference loadFromJson(Locksmithy plugin, String locationRefString) {
+
+        File file = new File(plugin.LOCATIONS_DIR + File.separator + locationRefString + ".json");
+        try {
+            JsonReader reader = new JsonReader(new FileReader(file));
+            LocationReference reference = new Gson().fromJson(reader, LocationReference.class);
+            reader.close();
+            String[] s = locationRefString.split("-", 4);
+            reference.x = Integer.parseInt(s[0]);
+            reference.y = Integer.parseInt(s[1]);
+            reference.z = Integer.parseInt(s[2]);
+            reference.world = s[3];
+            return reference;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    public void delete(Locksmithy plugin) {
+
+        File file = new File(plugin.LOCATIONS_DIR + File.separator + asString() + ".json");
+        if (file.delete()) {
+            plugin.print(file.getPath() + " deleted.");
+        }
+
     }
 
 }

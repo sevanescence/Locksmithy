@@ -1,13 +1,13 @@
 package com.makotomiyamoto.locksmithy;
 
-import com.makotomiyamoto.locksmithy.listener.BlockBreakListener;
-import com.makotomiyamoto.locksmithy.listener.BlockInteractListener;
-import com.makotomiyamoto.locksmithy.listener.LockpickAttemptHandler;
+import com.makotomiyamoto.locksmithy.commands.*;
+import com.makotomiyamoto.locksmithy.listener.*;
 import com.makotomiyamoto.locksmithy.lock.RegisteredKey;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -62,8 +62,16 @@ public final class Locksmithy extends JavaPlugin {
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(new BlockInteractListener(this), this);
         pm.registerEvents(new BlockBreakListener(this), this);
-        if (getConfig().getBoolean("options.lockpicking.enabled"))
-            pm.registerEvents(new LockpickAttemptHandler(this), this);
+        pm.registerEvents(new BlockRedstoneListener(this), this);
+        pm.registerEvents(new PistonPushListener(this), this);
+        pm.registerEvents(new CraftListener(this), this);
+        if (getConfig().getBoolean("options.crafting.advanced-key-duplication"))
+            pm.registerEvents(new AdvancedCraftListener(this), this);
+
+        PluginCommand lks = getCommand("lks");
+        assert lks != null;
+        lks.setExecutor(new CommandHandler(this));
+        lks.setTabCompleter(new CommandHelper());
 
         ItemStack blankKey = RegisteredKey.buildThing(this, "options.blank_key");
         ItemStack advancedBlankKey = RegisteredKey.buildThing(this, "options.advanced_blank_key");

@@ -5,23 +5,26 @@ import com.makotomiyamoto.locksmithy.lock.LocalPlayerData;
 import com.makotomiyamoto.locksmithy.lock.LocationReference;
 import com.makotomiyamoto.locksmithy.lock.RegisteredKey;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.Sound;
+import org.bukkit.block.Barrel;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.data.type.Chest;
+import org.bukkit.block.data.type.Door;
 import org.bukkit.block.data.type.TrapDoor;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
+import java.time.ZonedDateTime;
+import java.util.HashMap;
 import java.util.UUID;
 
 public final class BlockInteractListener implements Listener {
@@ -46,239 +49,461 @@ public final class BlockInteractListener implements Listener {
             return;
         }
 
-        Block block = event.getClickedBlock();
-        if (block == null) return;
-        BlockState state = block.getState();
-        Player player = event.getPlayer();
+        EquipmentSlot eSlot = event.getHand();
+        if (eSlot == null || !eSlot.equals(EquipmentSlot.HAND)) return;
 
-        LocationReference r = LocationReference.findByFile(plugin, block.getLocation());
+        if (event.getClickedBlock() == null) return;
+
+        ConfigurationSection options = plugin.getConfig().getConfigurationSection("options");
+        assert options != null;
+        ConfigurationSection messages = options.getConfigurationSection("messages");
+        assert messages != null;
+
+        Block block = event.getClickedBlock();
+        Player player = event.getPlayer();
 
         LocalPlayerData playerData = LocalPlayerData.fetchFromFile(plugin, player);
         if (playerData == null) {
             playerData = new LocalPlayerData(player);
             playerData.save(plugin);
-        } else if (playerData.isDebug() && r != null) {
-            if (player.getInventory().getItemInMainHand().getType().equals(Material.STICK)) {
-                player.sendMessage("§6Location: §f" + r.asString());
-                player.sendMessage("§6Connected Location: §f"
-                        + ((r.getConnectedLocationString() == null) ? "none" : r.getConnectedLocationString()));
-                player.sendMessage("§6Owner UUID: §f" + r.getOwnerByUuid());
-                //noinspection ConstantConditions
-                player.sendMessage("§6Owner Name: §f" + Bukkit.getPlayer(UUID.fromString(r.getOwnerByUuid())).getName());
-                player.sendMessage("§6Authorized Key: §f" + r.getAuthorizedKeyByUuid());
-                player.sendMessage("§6Advanced: §f" + r.isAdvancedLock());
-                event.setCancelled(true);
-                return;
-            }
         }
 
-        if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && player.isSneaking()) {
-
-            if (block.getType().isInteractable()) {
-                Location loc = block.getLocation();
-                World world = loc.getWorld();
-                int x = loc.getBlockX();
-                int y = loc.getBlockY();
-                int z = loc.getBlockZ();
-                assert world != null;
-                LocationReference reference = new LocationReference(loc);
-                LocationReference otherReference = null;
-
-                ItemStack item = event.getItem();
-                ConfigurationSection options = plugin.getConfig().getConfigurationSection("options");
-                assert options != null;
-                ConfigurationSection messages = options.getConfigurationSection("messages");
-                assert messages != null;
-                if (item == null && r != null) {
-                    handleOpenAttempt(event);
-                    return;
-                } else if (item == null) {
-                    return;
+        if (playerData.isDebug()) {
+            LocationReference r = LocationReference.findByFile(plugin, block.getLocation());
+            if (player.getInventory().getItemInMainHand().getType().equals(Material.STICK)) {
+                player.sendMessage("§6Locksmithy v1.0 Debugger");
+                if (r == null) {
+                    player.sendMessage("§6Error: §fThis block does not have a lock.");
+                } else {
+                    player.sendMessage("§6Location: §f" + r.asString());
+                    player.sendMessage("§6Neighbor: §f" + r.getConnectedLocationString());
+                    player.sendMessage("§6Owner: §f" + Bukkit.getPlayer(UUID.fromString(r.getOwnerByUuid())));
+                    player.sendMessage("§6Owner by UUID: §f" + r.getOwnerByUuid());
+                    player.sendMessage("§6Authorized key: §f" + r.getAuthorizedKeyByUuid());
+                    player.sendMessage("§6isAdvanced: §f" + r.isAdvancedLock());
+                    player.sendMessage("§6isExposed: §f" + r.isExposed());
+                    player.sendMessage("§6isJammed: §f" + r.isJammed());
+                    player.sendMessage("§6isPublic: §f" + r.isAccessible());
                 }
-                if (LocationReference.isAssignedAdvancedKey(plugin, item)) {
-                    plugin.sendMessage(player, messages.getString("key-in-use"));
-                    return;
-                }
-                if (LocationReference.locationAlreadyAssigned(plugin, reference)
-                        && LocationReference.isAnyAvailableKey(plugin, item)) {
-                    plugin.sendMessage(player, messages.getString("lock-already-assigned"));
-                    return;
-                }
+                event.setCancelled(true);
+            } else {
                 if (r != null) {
-                    handleOpenAttempt(event);
-                    return;
+                    plugin.sendMessage(player, "&eOpening lock in debug mode.");
                 }
-                if (!LocationReference.isAnyAvailableKey(plugin, item)) {
-                    return;
-                }
+            }
+            return;
+        }
 
-                if (player.getInventory().firstEmpty() == -1 && item.getAmount() > 1) {
+        LocationReference reference = LocationReference.findByFile(plugin, block.getLocation());
+        if (reference == null) {
+
+            if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && player.isSneaking()) {
+
+                ItemStack mainHand = player.getInventory().getItemInMainHand();
+                if (mainHand.getItemMeta() == null) return;
+                if (player.getInventory().firstEmpty() == -1 && mainHand.getAmount() > 1) {
                     plugin.sendMessage(player, messages.getString("inventory-full"));
                     return;
                 }
 
-                // TODO rewrite this as LocationReference.getDoorTwin(Location: loc)
-                if (LocationReference.isDoor(block)) {
-                    Location locTop = new Location(world, x, y+1, z);
-                    Location locBottom = new Location(world, x, y-1, z);
-                    if (LocationReference.isDoor(world.getBlockAt(locTop))) {
-                        otherReference = new LocationReference(locTop);
-                    } else if (LocationReference.isDoor(world.getBlockAt(locBottom))) {
-                        otherReference = new LocationReference(locBottom);
+                if (LocationReference.isAnyAvailableKey(plugin, mainHand)) {
+
+                    reference = new LocationReference(block.getLocation());
+                    LocationReference otherReference = null;
+
+                    if (LocationReference.isDoor(block)) {
+                        otherReference = new LocationReference(LocationReference.getDoorPart(block));
+                    } else if (block.getState() instanceof org.bukkit.block.Chest) {
+                        if (LocationReference.isDoubleChest(block)) {
+                            Chest.Type type = ((Chest) block.getBlockData()).getType();
+                            BlockFace facing = ((Chest) block.getBlockData()).getFacing();
+                            otherReference = LocationReference.getDoubleChestTwin(type, facing, block.getLocation());
+                        }
+                    } else if (!(block.getBlockData() instanceof TrapDoor || block.getState() instanceof Barrel)) {
+                        return;
+                    }
+
+                    String id;
+                    if (LocationReference.isBlankKey(plugin, mainHand)
+                            || LocationReference.isAdvancedBlankKey(plugin, mainHand)) {
+                        String keyString = (LocationReference.isAdvancedBlankKey(plugin, mainHand)
+                                ? "options.advanced_key" : "options.key");
+                        HashMap<String, ItemStack> map = RegisteredKey.generateKeyByKey(plugin, keyString, player);
+                        id = "0";
+                        for (String s : map.keySet()) {
+                            id = s;
+                        }
+                        ItemStack key = map.get(id);
+                        if (mainHand.getAmount() == 1) {
+                            player.getInventory().setItemInMainHand(key);
+                        } else {
+                            mainHand.setAmount(mainHand.getAmount() - 1);
+                            player.getInventory().addItem(key);
+                        }
                     } else {
-                        throw new IllegalArgumentException(
-                                "Something silly happened. Report this to me at MakotoMiyamoto#0215 on Discord!");
+                        int keyIndex = RegisteredKey
+                                .findLoreIndexFromConfig(plugin, "%KEY_ID%", "options.key");
+                        //noinspection ConstantConditions;
+                        id = mainHand.getItemMeta().getLore().get(keyIndex)
+                                .replaceAll("§[A-z0-9]", "")
+                                .replaceAll("[^0-9]", "");
                     }
-                } else if (state instanceof org.bukkit.block.Chest) {
-                    Chest chestData = (Chest) block.getBlockData();
-                    Chest.Type type = chestData.getType();
-                    if (!type.equals(Chest.Type.SINGLE)) {
-                        BlockFace facing = chestData.getFacing();
-                        otherReference = LocationReference.getDoubleChestTwin(type, facing, loc);
+
+                    reference.setAdvancedLock(LocationReference.isAdvancedBlankKey(plugin, mainHand));
+                    reference.setOwnerByUuid(player.getUniqueId().toString());
+                    reference.setAuthorizedKeyByUuid(id);
+                    if (otherReference != null) {
+                        reference.setConnectedLocationString(otherReference.asString());
+                        otherReference.setConnectedLocationString(reference.asString());
+                        otherReference.setAdvancedLock(reference.isAdvancedLock());
+                        otherReference.setOwnerByUuid(reference.getOwnerByUuid());
+                        otherReference.setAuthorizedKeyByUuid(reference.getAuthorizedKeyByUuid());
+                        otherReference.save(plugin);
                     }
-                } else if (!(block.getBlockData() instanceof TrapDoor)) {
-                    return;
-                }
+                    reference.save(plugin);
 
-                int slot = player.getInventory().getHeldItemSlot();
-                String id;
-                if (LocationReference.isBlankKey(plugin, item)
-                        || LocationReference.isAdvancedBlankKey(plugin, item)) {
-                    ItemStack itemStack = player.getInventory().getItemInMainHand();
-                    itemStack.setAmount(itemStack.getAmount()-1);
-                    player.getInventory().setItem(slot, itemStack);
-                }
-                int i = RegisteredKey.findLoreIndexFromConfig(plugin, "%KEY_ID%", "options.key");
-                if (LocationReference.isBlankKey(plugin, item)) {
-                    ItemStack key = RegisteredKey.generateKeyByKey(plugin, "options.key", player);
-                    //noinspection ConstantConditions
-                    id = key.getItemMeta().getLore().get(i);
-                    player.getInventory().addItem(key);
-                } else if (LocationReference.isKey(plugin, item)) {
-                    //noinspection ConstantConditions
-                    id = item.getItemMeta().getLore().get(i);
-                } else if (LocationReference.isAdvancedBlankKey(plugin, item)) {
-                    ItemStack advancedKey = RegisteredKey.generateKeyByKey(plugin, "options.advanced_key", player);
-                    i = RegisteredKey.findLoreIndexFromConfig(plugin, "%KEY_ID%", "options.advanced_key");
-                    //noinspection ConstantConditions
-                    id = advancedKey.getItemMeta().getLore().get(i);
-                    player.getInventory().addItem(advancedKey);
-                    reference.setAdvancedLock(true);
-                    if (otherReference != null) otherReference.setAdvancedLock(true);
-                } else {
-                    throw new IllegalArgumentException("Something went wrong with the keys. Please report this issue..");
-                }
+                    plugin.sendMessage(player, messages.getString("lock-created"));
 
-                reference.setAuthorizedKeyByUuid(id);
-                reference.setOwnerByUuid(player.getUniqueId().toString());
-                if (otherReference != null) {
-                    reference.setConnectedLocationString(otherReference.asString());
-                    otherReference.setConnectedLocationString(reference.asString());
-                    otherReference.setAuthorizedKeyByUuid(reference.getAuthorizedKeyByUuid());
-                    otherReference.setOwnerByUuid(reference.getOwnerByUuid());
-                    otherReference.save(plugin);
+                } else if (LocationReference.isAssignedAdvancedKey(plugin, mainHand)) {
+                    plugin.sendMessage(player, messages.getString("key-in-use"));
                 }
-                reference.save(plugin);
-
-                plugin.sendMessage(player, messages.getString("lock-created"));
 
             }
+
         } else {
-            handleOpenAttempt(event);
+
+            if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
+                handleOpenAttempt(event);
+            }
+
         }
+
     }
 
+    // NOTE: This will NEVER run unless LocationReference reference != null. Don't waste power evaluating here.
     private void handleOpenAttempt(PlayerInteractEvent event) {
 
-        // TODO check if debug mode for player is on, check if player is holding stick
         ConfigurationSection options = plugin.getConfig().getConfigurationSection("options");
         assert options != null;
-
-        Block block = event.getClickedBlock();
-        if (block == null) return;
-        LocationReference reference = LocationReference.findByFile(plugin, block.getLocation());
-        if (reference == null)
-            return;
-
-        Player player = event.getPlayer();
-
-        if (reference.isExposed()) {
-            if (player.getUniqueId().toString().equals(reference.getOwnerByUuid())) {
-                plugin.sendMessage(player, options.getString("messages.was-broken-into"));
-                reference.setExposed(false);
-                reference.save(plugin);
-            }
-            return;
-        } else if (reference.isJammed()) {
-            if (player.getUniqueId().toString().equals(reference.getOwnerByUuid())) {
-                plugin.sendMessage(player, options.getString("messages.was-jammed"));
-                reference.setJammed(false);
-                reference.save(plugin);
-                return;
-            }
-            event.setCancelled(true);
-            return;
-        }
-
-        Material requiredType = reference.getRequiredType(plugin);
-        String requiredNode = (reference.isAdvancedLock()) ? "options.advanced_key" : "options.key";
-
-        ItemStack possibleKey = null;
-        ItemStack mainHandItem = player.getInventory().getItemInMainHand();
-        ItemStack offHandItem = player.getInventory().getItemInOffHand();
-        if (!mainHandItem.getType().equals(Material.AIR)) {
-            if (reference.keyIDMatches(plugin, mainHandItem, requiredNode)) {
-                possibleKey = mainHandItem;
-            }
-        }
-        if (possibleKey == null && !offHandItem.getType().equals(Material.AIR)) {
-            if (reference.keyIDMatches(plugin, offHandItem, requiredNode)) {
-                possibleKey = offHandItem;
-            }
-        }
-        if (possibleKey == null) {
-            ItemStack[] inventory = player.getInventory().getContents();
-            for (ItemStack itemStack : inventory) {
-                if (itemStack == null) continue;
-                if (itemStack.getType().equals(requiredType)) {
-                    if (reference.keyIDMatches(plugin, itemStack, requiredNode)) {
-                        possibleKey = itemStack;
-                    }
-                }
-            }
-        }
-
         ConfigurationSection messages = options.getConfigurationSection("messages");
         assert messages != null;
 
-        if (possibleKey == null) {
+        Block block = event.getClickedBlock();
+        assert block != null;
+        Player player = event.getPlayer();
 
-            BlockState state = block.getState();
-            if (state instanceof org.bukkit.block.Chest) {
+        LocationReference reference = LocationReference.findByFile(plugin, block.getLocation());
+        assert reference != null;
 
-                org.bukkit.block.Chest chest = (org.bukkit.block.Chest) state;
-                Inventory chestInventory = chest.getInventory();
-                ItemStack[] itemStacks = chestInventory.getContents();
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        ItemStack offHand = player.getInventory().getItemInOffHand();
+        ItemStack[] inventory = player.getInventory().getContents();
 
-                for (ItemStack itemStack : itemStacks) {
-                    if (itemStack == null) continue;
-                    if (itemStack.getType().equals(requiredType)) {
-                        if (reference.keyIDMatches(plugin, itemStack, requiredNode)) {
-                            return;
-                        }
-                    }
-                }
+        Material requiredType = reference.getRequiredType(plugin);
+        String node = (reference.isAdvancedLock()) ? "options.advanced_key" : "options.key";
 
+        boolean canOpen = false;
+        ItemStack c = null;
+        if (mainHand.getType().equals(requiredType)) {
+            if (reference.keyIDMatches(plugin, mainHand, node)) {
+                canOpen = true;
+                c = mainHand;
             }
-
-            event.setCancelled(true);
-            if (!RegisteredKey.isLockpick(plugin, mainHandItem)) {
-                //noinspection ConstantConditions
-                plugin.sendMessage(player, messages.getString("block-locked")
-                        .replaceAll("%block%", String.valueOf(block.getType()).toLowerCase()
-                                .replaceAll("_", " ")));
+        } else if (offHand.getType().equals(requiredType)) {
+            if (reference.keyIDMatches(plugin, offHand, node)) {
+                canOpen = true;
             }
         }
+        for (ItemStack itemStack : inventory) {
+            if (itemStack == null) continue;
+            if (itemStack.getType().equals(requiredType)) {
+                if (reference.keyIDMatches(plugin, itemStack, node)) {
+                    canOpen = true;
+                }
+            }
+        }
+        if (block.getState() instanceof org.bukkit.block.Chest) {
+            for (ItemStack itemStack : ((org.bukkit.block.Chest) block.getState()).getInventory()) {
+                if (itemStack == null) continue;
+                if (itemStack.getType().equals(requiredType)) {
+                    if (reference.keyIDMatches(plugin, itemStack, node)) {
+                        canOpen = true;
+                        break;
+                    }
+                }
+            }
+        } else if (block.getState() instanceof Barrel) {
+            for (ItemStack itemStack : ((Barrel) block.getState()).getInventory()) {
+                if (itemStack == null) continue;
+                if (itemStack.getType().equals(requiredType)) {
+                    if (reference.keyIDMatches(plugin, itemStack, node)) {
+                        canOpen =  true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (canOpen) {
+
+            if (reference.isJammed()) {
+                plugin.sendMessage(player, messages.getString("was-jammed"));
+                event.setCancelled(true);
+            } else if (reference.isExposed()) {
+                plugin.sendMessage(player, messages.getString("was-broken-into"));
+                event.setCancelled(true);
+            }
+            if (reference.isJammed() || reference.isExposed()) {
+                reference.setJammed(false);
+                reference.setExposed(false);
+                reference.save(plugin);
+                if (reference.getConnectedLocationString() != null) {
+                    LocationReference otherReference = LocationReference.loadFromJson(plugin, reference.getConnectedLocationString());
+                    assert otherReference != null;
+                    otherReference.setJammed(false);
+                    otherReference.setExposed(false);
+                    otherReference.save(plugin);
+                }
+            }
+
+            if (player.isSneaking() && c != null && reference.getOwnerByUuid().equals(player.getUniqueId().toString())) {
+                 reference.setAccessible(!reference.isAccessible());
+                 reference.save(plugin);
+                 if (reference.getConnectedLocationString() != null) {
+                     LocationReference otherReference = LocationReference.loadFromJson(plugin, reference.getConnectedLocationString());
+                     assert otherReference != null;
+                     otherReference.setAccessible(!otherReference.isAccessible());
+                     otherReference.save(plugin);
+                 }
+                 plugin.sendMessage(player, (reference.isAccessible() ? messages.getString("lock-public-on") : messages.getString("lock-public-off")));
+                 return;
+            }
+
+            if (handleIronGateway(player, block)) {
+                event.setCancelled(true);
+            }
+
+            return;
+
+        } else if (reference.isExposed() || reference.isAccessible()) {
+            if (handleIronGateway(player, block)) {
+                event.setCancelled(true);
+            }
+            return;
+        }
+
+        if (player.isSneaking()) {
+
+            LocalPlayerData playerData = LocalPlayerData.fetchFromFile(plugin, player);
+            assert playerData != null;
+            long currentTime = ZonedDateTime.now().toInstant().toEpochMilli();
+            long cooldownMilli = options.getLong("lock-break-cooldown-seconds")*1000;
+            long diff = currentTime - playerData.getTimeTried();
+
+            if (diff > cooldownMilli) {
+                if (RegisteredKey.isLockpick(plugin, mainHand) && options.getBoolean("lockpicking.enabled")) {
+                    handleLockpickAttempt(event);
+                    playerData.updateTimeTried();
+                } else if (RegisteredKey.isSmashItem(plugin, mainHand) && options.getBoolean("lock-smashing.enabled")) {
+                    handleLockSmashAttempt(event);
+                    playerData.updateTimeTried();
+                } else {
+                    //noinspection ConstantConditions
+                    plugin.sendMessage(player,
+                            messages.getString("block-locked")
+                                    .replaceAll("%block%", block.getType().toString()
+                                            .replaceAll("_", " ").toLowerCase()));
+                }
+                playerData.save(plugin);
+            } else {
+                int seconds = (int)(cooldownMilli/1000) - (int)(diff/1000);
+                //noinspection ConstantConditions
+                String msg = messages.getString("cooldown-on-attempt").replaceAll("%COOLDOWN%", String.valueOf(seconds));
+                plugin.sendMessage(player, msg);
+            }
+            event.setCancelled(true);
+
+        } else {
+            event.setCancelled(true);
+            //noinspection ConstantConditions
+            plugin.sendMessage(player,
+                    messages.getString("block-locked")
+                            .replaceAll("%block%", block.getType().toString()
+                                    .replaceAll("_", " ").toLowerCase()));
+        }
+
+    }
+
+    private boolean handleIronGateway(Player player, Block block) {
+
+        if (block.getType().equals(Material.IRON_DOOR)) {
+            Door door = (Door) block.getBlockData();
+            door.setOpen(!door.isOpen());
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                player.playSound(player.getLocation(), (door.isOpen() ? Sound.BLOCK_IRON_DOOR_OPEN : Sound.BLOCK_IRON_DOOR_CLOSE), 1f, 1f);
+                for (Entity entity : player.getNearbyEntities(20, 20, 20)) {
+                    if (entity instanceof Player) {
+                        Player target = (Player) entity;
+                        float vol = 2 / Float.parseFloat(String.valueOf(target.getLocation().distance(player.getLocation())));
+                        target.playSound(target.getLocation(), (door.isOpen() ? Sound.BLOCK_IRON_DOOR_OPEN : Sound.BLOCK_IRON_DOOR_CLOSE), vol, 1f);
+                    }
+                }
+                block.setBlockData(door);
+            }, 0);
+            return true;
+        } else if (block.getType().equals(Material.IRON_TRAPDOOR)) {
+            TrapDoor door = (TrapDoor) block.getBlockData();
+            door.setOpen(!door.isOpen());
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                player.playSound(player.getLocation(), (door.isOpen() ? Sound.BLOCK_IRON_TRAPDOOR_OPEN : Sound.BLOCK_IRON_TRAPDOOR_CLOSE), 1f, 1f);
+                for (Entity entity : player.getNearbyEntities(20, 20, 20)) {
+                    if (entity instanceof Player) {
+                        Player target = (Player) entity;
+                        float vol = 2 / Float.parseFloat(String.valueOf(target.getLocation().distance(player.getLocation())));
+                        target.playSound(target.getLocation(), (door.isOpen() ? Sound.BLOCK_IRON_DOOR_OPEN : Sound.BLOCK_IRON_DOOR_CLOSE), vol, 1f);
+                    }
+                }
+                block.setBlockData(door);
+            }, 0);
+            return true;
+        }
+
+        return false;
+
+    }
+
+    private void handleLockpickAttempt(PlayerInteractEvent event) {
+
+        ConfigurationSection options = plugin.getConfig().getConfigurationSection("options");
+        assert options != null;
+        ConfigurationSection messages = options.getConfigurationSection("messages");
+        assert messages != null;
+
+        Block block = event.getClickedBlock();
+        assert block != null;
+        Player player = event.getPlayer();
+
+        LocationReference reference = LocationReference.findByFile(plugin, block.getLocation());
+        assert reference != null;
+
+        if (reference.isAdvancedLock()) {
+            plugin.sendMessage(player, messages.getString("lock-unbreakable"));
+            event.setCancelled(true);
+            return;
+        } else if (reference.isJammed()) {
+            plugin.sendMessage(player, messages.getString("lock-jammed"));
+            event.setCancelled(true);
+            return;
+        } else if (reference.isExposed()) {
+            plugin.sendMessage(player, messages.getString("lock-already-broken"));
+            event.setCancelled(true);
+            return;
+        }
+
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        assert mainHand.getItemMeta() != null && mainHand.getItemMeta().getLore() != null;
+
+        int successLine = RegisteredKey.findLoreIndexFromConfig(plugin, "%SUCCESS_RATE%", "options.lockpick");
+        int failureLine = RegisteredKey.findLoreIndexFromConfig(plugin, "%CRITICAL_FAILURE_RATE%", "options.lockpick");
+
+        double success = Double.parseDouble(
+                mainHand.getItemMeta().getLore().get(successLine)
+                .replaceAll("§[A-z0-9]", "").replaceAll("[^0-9.]", ""))/100;
+        double failure = Double.parseDouble(
+                mainHand.getItemMeta().getLore().get(failureLine)
+                        .replaceAll("§[A-z0-9]", "").replaceAll("[^0-9.]", ""))/100;
+
+        if (Math.random() < success) {
+            reference.setExposed(true);
+            plugin.sendMessage(player, messages.getString("lockpick-success"));
+        } else if (Math.random() < failure) {
+            reference.setJammed(true);
+            plugin.sendMessage(player, messages.getString("lockpick-failure-critical"));
+        } else {
+            plugin.sendMessage(player, messages.getString("lockpick-failure"));
+        }
+        reference.save(plugin);
+        if (reference.getConnectedLocationString() != null) {
+            LocationReference otherReference = LocationReference.loadFromJson(plugin, reference.getConnectedLocationString());
+            assert otherReference != null;
+            otherReference.setExposed(reference.isExposed());
+            otherReference.setJammed(reference.isJammed());
+            otherReference.save(plugin);
+        }
+
+        event.setCancelled(true);
+        if (mainHand.getAmount() == 1) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> mainHand.setAmount(mainHand.getAmount()-1), 1);
+        } else {
+            mainHand.setAmount(mainHand.getAmount()-1);
+        }
+
+    }
+
+    private void handleLockSmashAttempt(PlayerInteractEvent event) {
+
+        ConfigurationSection options = plugin.getConfig().getConfigurationSection("options");
+        assert options != null;
+        ConfigurationSection messages = options.getConfigurationSection("messages");
+        assert messages != null;
+
+        Block block = event.getClickedBlock();
+        assert block != null;
+        Player player = event.getPlayer();
+
+        LocationReference reference = LocationReference.findByFile(plugin, block.getLocation());
+        assert reference != null;
+
+        if (reference.isAdvancedLock()) {
+            plugin.sendMessage(player, messages.getString("lock-unbreakable"));
+            event.setCancelled(true);
+            return;
+        } else if (reference.isJammed()) {
+            plugin.sendMessage(player, messages.getString("lock-jammed"));
+            event.setCancelled(true);
+            return;
+        } else if (reference.isExposed()) {
+            plugin.sendMessage(player, messages.getString("lock-already-broken"));
+            event.setCancelled(true);
+            return;
+        }
+
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        ConfigurationSection item = null;
+        //noinspection ConstantConditions
+        for (String key : options.getConfigurationSection("lock-smashing.items").getKeys(false)) {
+            if (key.toUpperCase().equals(mainHand.getType().toString())) {
+                item = options.getConfigurationSection(String.format("lock-smashing.items.%1s", key));
+            }
+        }
+        assert item != null;
+
+        double success = item.getDouble("success-rate")/100d;
+        double failure = item.getDouble("critical-failure-rate")/100d;
+
+        if (Math.random() < success) {
+            plugin.sendMessage(player, messages.getString("smash-success"));
+            reference.setExposed(true);
+        } else if (Math.random() < failure) {
+            plugin.sendMessage(player, messages.getString("smash-failure-critical"));
+            reference.setJammed(true);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                mainHand.setAmount(0);
+                player.playSound(player.getLocation(), Sound.ITEM_SHIELD_BREAK, 10f, 1f);
+            }, 5);
+        } else {
+            plugin.sendMessage(player, messages.getString("smash-failure"));
+        }
+        reference.save(plugin);
+        if (reference.getConnectedLocationString() != null) {
+            LocationReference otherReference = LocationReference.loadFromJson(plugin, reference.getConnectedLocationString());
+            assert otherReference != null;
+            otherReference.setExposed(reference.isExposed());
+            otherReference.setJammed(reference.isJammed());
+            otherReference.save(plugin);
+        }
+
+        event.setCancelled(true);
 
     }
 
