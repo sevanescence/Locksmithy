@@ -1,6 +1,6 @@
 name: Locksmithy
 main: com.makotomiyamoto.locksmithy.Locksmithy
-version: 1.0-SNAPSHOT
+version: 1.0.1-SNAPSHOT
 api-version: '1.15'
 commands:
   lks:

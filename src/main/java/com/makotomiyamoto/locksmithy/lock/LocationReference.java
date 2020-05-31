@@ -58,7 +58,7 @@ public class LocationReference {
                 LocationReference reference = gson.fromJson(reader, LocationReference.class);
                 reader.close();
                 String name = file.getName().replace(".json", "");
-                String[] format = name.split("-", 4);
+                String[] format = name.split("(?<!^)(?<![-])-", 4);
                 reference.x = Integer.parseInt(format[0]);
                 reference.y = Integer.parseInt(format[1]);
                 reference.z = Integer.parseInt(format[2]);

@@ -21,7 +21,8 @@ public final class Locksmithy extends JavaPlugin {
 
     // TODO fix armor stand glitch (note: might not be an actual bug)
     // TODO make sure to add sounds and stuff
-    // TODO make block below locked block unbreakable
+    // TODO disallow hopper placing beneath locked blocks
+    // TODO write version in ignore.yml rather than name of project
 
     public String PATH, LOCATIONS_DIR, USERS_DIR;
 

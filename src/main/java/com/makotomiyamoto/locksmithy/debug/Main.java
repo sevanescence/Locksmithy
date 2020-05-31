@@ -1,29 +1,28 @@
 package com.makotomiyamoto.locksmithy.debug;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Main {
 
-    private static Map<Long, String> getValue() {
-        Map<Long, String> map = new HashMap<>();
-        long id = 5;
-        String s = "hello";
-        map.put(id, s);
-        return map;
-    }
-
     public static void main(String[] args) {
 
-        Map<Long, String> map = getValue();
-        long id = 0;
-        String s = "";
-        for (Long l : map.keySet()) {
-            id = l;
-            s = map.get(id);
-        }
-        System.out.println(id);
-        System.out.println(s);
+        String sampleCoords = "60-24--45-hello-world";
+        // ignore hyphen in split regex if it is at the beginning of the string or after another hyphen
+
+        //System.out.println(Arrays.toString(sampleCoords.split("-")));
+        System.out.println(sampleCoords);
+        // -(?=[-]) - matches hyphen when a hyphen is found to the right
+        // -(?=[\\w]) - matches hyphen when the next character is a letter
+        // (?<![-])- - matches hyphen with no hyphen before it
+        Pattern pattern = Pattern.compile("(?<!^)(?<![-])-");
+        Matcher matcher = pattern.matcher(sampleCoords);
+        System.out.println(matcher.replaceAll("_"));
+
+        System.out.println(Arrays.toString(sampleCoords.split("(?<!^)(?<![-])-", 4)));
+
+
 
     }
 

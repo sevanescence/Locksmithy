@@ -1,10 +1,12 @@
 package com.makotomiyamoto.locksmithy.listener;
 
+import com.makotomiyamoto.locksmithy.Extras;
 import com.makotomiyamoto.locksmithy.Locksmithy;
 import com.makotomiyamoto.locksmithy.lock.LocalPlayerData;
 import com.makotomiyamoto.locksmithy.lock.LocationReference;
 import com.makotomiyamoto.locksmithy.lock.RegisteredKey;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.Barrel;
@@ -266,7 +268,7 @@ public final class BlockInteractListener implements Listener {
                 }
             }
 
-            if (player.isSneaking() && c != null && reference.getOwnerByUuid().equals(player.getUniqueId().toString())) {
+            if (player.isSneaking() && c != null) {
                  reference.setAccessible(!reference.isAccessible());
                  reference.save(plugin);
                  if (reference.getConnectedLocationString() != null) {
@@ -341,10 +343,11 @@ public final class BlockInteractListener implements Listener {
             door.setOpen(!door.isOpen());
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 player.playSound(player.getLocation(), (door.isOpen() ? Sound.BLOCK_IRON_DOOR_OPEN : Sound.BLOCK_IRON_DOOR_CLOSE), 1f, 1f);
+                Location playerLocation = player.getLocation();
                 for (Entity entity : player.getNearbyEntities(20, 20, 20)) {
                     if (entity instanceof Player) {
                         Player target = (Player) entity;
-                        float vol = 2 / Float.parseFloat(String.valueOf(target.getLocation().distance(player.getLocation())));
+                        float vol = Extras.getVolumeProximity(playerLocation, entity.getLocation(), 2.0f);
                         target.playSound(target.getLocation(), (door.isOpen() ? Sound.BLOCK_IRON_DOOR_OPEN : Sound.BLOCK_IRON_DOOR_CLOSE), vol, 1f);
                     }
                 }
@@ -356,10 +359,11 @@ public final class BlockInteractListener implements Listener {
             door.setOpen(!door.isOpen());
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 player.playSound(player.getLocation(), (door.isOpen() ? Sound.BLOCK_IRON_TRAPDOOR_OPEN : Sound.BLOCK_IRON_TRAPDOOR_CLOSE), 1f, 1f);
+                Location playerLocation = player.getLocation();
                 for (Entity entity : player.getNearbyEntities(20, 20, 20)) {
                     if (entity instanceof Player) {
                         Player target = (Player) entity;
-                        float vol = 2 / Float.parseFloat(String.valueOf(target.getLocation().distance(player.getLocation())));
+                        float vol = Extras.getVolumeProximity(playerLocation, target.getLocation(), 2.0f);
                         target.playSound(target.getLocation(), (door.isOpen() ? Sound.BLOCK_IRON_DOOR_OPEN : Sound.BLOCK_IRON_DOOR_CLOSE), vol, 1f);
                     }
                 }
